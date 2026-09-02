@@ -313,7 +313,14 @@
     label.textContent = key;
     wrap.appendChild(label);
 
-    const columns = items.length ? Object.keys(items[0]) : ['value'];
+  // Explicit column sets for fields we know the shape of, so empty
+  // arrays still render the right headers instead of a generic 'value' column
+  const KNOWN_COLUMNS = {
+    line_items: ['item', 'item_key', 'item_qty', 'item_amt'],
+    participants: ['participant_id', 'participant_name']
+  };
+
+  const columns = KNOWN_COLUMNS[key] || (items.length ? Object.keys(items[0]) : ['value']);
 
     const table = document.createElement('table');
     table.className = 'items';
