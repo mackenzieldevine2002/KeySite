@@ -159,6 +159,107 @@
   const API_KEY = '79cc6b2c593868debff80f6f5b0d7d77a1db74cef650c977';
   const INTAKE_URL = 'https://devinesai.app.n8n.cloud/webhook/invoice-intake';
   const CONFIRM_URL = 'https://devinesai.app.n8n.cloud/webhook/invoice-confirm';
+  // Valid item_key values with their item names, used to populate the
+  // Item Key dropdown. Note: code 260 intentionally appears twice
+  // (Twin XL Wood Frame, and Desk and Chair) - both are valid, distinct items.
+  const ITEM_KEY_OPTIONS = [
+    ['500', 'Twin Set (Frame, Box Spring, Mattress)'],
+    ['501', 'Full Set (Frame, Box Spring, Mattress)'],
+    ['502', 'Queen Set (Frame, Box Spring, Mattress)'],
+    ['503', 'Twin/Full/Queen Frame ONLY - Metal'],
+    ['504', 'Twin Box Spring Only'],
+    ['505', 'Full Box Spring Only'],
+    ['506', 'Queen Box Spring Only'],
+    ['507', 'Twin Mattress Only'],
+    ['508', 'Full Size Mattress Only'],
+    ['509', 'Queen Size Mattress Only'],
+    ['513', 'Twin/Full/Queen Air Mattress'],
+    ['514', 'Foldaway Bed'],
+    ['520', 'Twin XL Set (Frame, Box Spring, Mattress)'],
+    ['600', '4 Pc Twin Bed Sheet Set (Includes Comforter)'],
+    ['601', '4 Pc Full Sheet Set (Includes Comforter)'],
+    ['602', '4 Pc Queen Sheet Set w/Comforter'],
+    ['603', '3 Pc Crib Sheet Set (Includes Comforter)'],
+    ['604', '4 Pc Toddler Sheet Set w/Comforter'],
+    ['605', 'Bed Bug Mattress Cover - T/F/Q'],
+    ['606', 'Toddler(Crib)/Twin/Full/Waterproof Mattress Cover'],
+    ['201', 'METAL Bunk Bed w/ Mattresses'],
+    ['202', 'WOOD Bunk Bed w/ Mattresses'],
+    ['214', 'METAL Twin/Full Bunk Bed w/ Mattresses'],
+    ['215', 'WOOD Twin/Full Bunk Bed w/ Mattresses'],
+    ['255', "Captain's Bed With Drawers - TWIN"],
+    ['241', "Captain's Bed With Drawers - FULL"],
+    ['230', "Captain's Bed With Trundle - TWIN"],
+    ['233', "Captain's Bed With Trundle - FULL"],
+    ['210', 'Twin Sets (matt, box spring, frame) - WOOD'],
+    ['252', 'Twin FRAME ONLY - WOOD'],
+    ['211', 'Full Sets (matt, box spring, frame) - WOOD'],
+    ['212', 'Queen Sets (matt, box spring, frame) - WOOD'],
+    ['253', 'Full FRAME ONLY - WOOD'],
+    ['254', 'Queen Set - WOOD - FRAME ONLY'],
+    ['260', 'Twin XL (matt, box spring, frame) - WOOD'],
+    ['206', 'Chest'],
+    ['207', '6 Drawer Dresser'],
+    ['208', '6 Drawer Dresser w/ Mirror'],
+    ['260', 'Desk and Chair - Solid Wood'],
+    ['402', 'Kitchen Table - 4 Chairs'],
+    ['403', 'Kitchen Table - 6 Chairs'],
+    ['300', 'Convertible Sofa'],
+    ['301', '3 Pc Living Room Set (Sofa, Loveseat, Chair)'],
+    ['306', 'Futon with Frame'],
+    ['722', 'Lamp - Floor'],
+    ['721', 'Lamp - Table'],
+    ['100', 'Crib Set (Crib & Mattress)'],
+    ['101', 'Convertible Crib'],
+    ['103', 'Toddler Bed w/ Mattress'],
+    ['107', 'Single Stroller'],
+    ['109', 'Double Stroller'],
+    ['110', 'Baby Gate'],
+    ['112', 'Pack & Play/Portable Crib'],
+    ['113', 'High Chair'],
+    ['121', 'Table Booster Seat'],
+    ['119', 'Infant Car Seat BASE ONLY'],
+    ['114', 'Infant Car Seat'],
+    ['120', 'Convertible Car Seat (Toddler)'],
+    ['115', 'Toddler Car Seat'],
+    ['116', 'Car Booster Seat (Child)'],
+    ['117', 'Travel System (Infant Car Seat & Stroller)'],
+    ['118', 'Bed Safety Guard Rail'],
+    ['125', 'Bassinet'],
+    ['135', 'Baby Monitor - VIDEO'],
+    ['130', 'Baby Monitor - NO VIDEO'],
+    ['702', '10000 BTU Air Conditioner'],
+    ['701', '8000 BTU Air Conditioner'],
+    ['708', '6000 BTU Air Conditioner'],
+    ['700', '5000 BTU Air Conditioner'],
+    ['703', '18 Cu. Ft. Refrigerator'],
+    ['706', '15 Cu. Ft. Refrigerator'],
+    ['705', '12 Cu. Ft. Refrigerator'],
+    ['704', '10 Cu. Ft. Refrigerator'],
+    ['707', '3.5 Cu. Ft. Refrigerator'],
+    ['714', 'Washer'],
+    ['715', 'Dryer (Electric)'],
+    ['719', 'Dryer (Gas)'],
+    ['716', 'Stove (Electric)'],
+    ['717', 'Stove (Gas)'],
+    ['720', 'Microwave'],
+    ['725', 'Stackable Washer/Dryer - Electric'],
+    ['726', 'Stackable Washer/Dryer - Gas'],
+    ['709', 'Heater - Electric'],
+    ['800', 'Radiator Cover'],
+    ['801', 'Window Guard'],
+    ['802', 'Gun/Ammunition Lock Box'],
+    ['803', 'Medication Lock Box'],
+    ['804', 'Humidifier'],
+    ['805', 'Dehumidifier'],
+    ['806', 'First Aid Kit'],
+    ['807', 'Carbon Monoxide Detector'],
+    ['808', 'Smoke Detector'],
+    ['809', 'Fire Extinguisher'],
+    ['810', 'Door Alarms'],
+    ['811', 'Window Screens - Custom'],
+    ['812', 'Window Screens - Adjustable']
+  ];
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
@@ -188,9 +289,26 @@
     if (fileInput.files.length) handleFiles(Array.from(fileInput.files));
   });
 
+  // Document AI only supports these formats - anything else gets rejected
+  // immediately instead of failing later with a cryptic backend error
+  const SUPPORTED_TYPES = [
+    'application/pdf', 'image/png', 'image/jpeg', 'image/tiff',
+    'image/gif', 'image/bmp', 'image/webp'
+  ];
+
   // Starts a new queue of files and kicks off processing the first one
   function handleFiles(files) {
-    fileQueue = files;
+    const rejected = files.filter(f => !SUPPORTED_TYPES.includes(f.type));
+    const accepted = files.filter(f => SUPPORTED_TYPES.includes(f.type));
+
+    if (rejected.length) {
+      const names = rejected.map(f => f.name).join(', ');
+      setStatus('Skipped unsupported file(s): ' + names + '. Only PDF, PNG, JPG, TIFF, GIF, BMP, and WEBP are supported.', 'error');
+    }
+
+    if (!accepted.length) return;
+
+    fileQueue = accepted;
     currentFileIndex = 0;
     updateQueueCounter();
     processNextFile();
@@ -289,13 +407,52 @@
     });
   }
 
+  const LOCAL_OFFICE_OPTIONS = [
+    'Atlantic East', 'Atlantic West', 'Bergen Central', 'Bergen South',
+    'Burlington East', 'Burlington West', 'Camden Central', 'Camden North',
+    'Camden South', 'Camden East', 'Cape May', 'Cumberland East',
+    'Cumberland West', 'Newark Center City', 'Newark Northeast', 'Essex Central',
+    'Essex North', 'Essex South', 'Gloucester East', 'Gloucester West',
+    'Hudson Central', 'Hudson North', 'Hudson West', 'Hudson South',
+    'Hunterdon Local', 'Mercer North', 'Mercer South', 'Middlesex Central',
+    'Middlesex Coastal', 'Middlesex West', 'Monmouth North', 'Monmouth South',
+    'Morris East', 'Morris West', 'Ocean North', 'Ocean South',
+    'Passaic Central', 'Passaic North', 'Salem Local', 'Somerset Local',
+    'Sussex Local', 'Union Central', 'Union East', 'Union West', 'Warren Local'
+  ];
+
   function renderTextField(key, value) {
     const wrap = document.createElement('div');
     wrap.className = 'field';
     const label = document.createElement('label');
     label.textContent = key;
-    const input = document.createElement(String(value).length > 60 ? 'textarea' : 'input');
-    input.value = value == null ? '' : value;
+    let input;
+    if (key === 'local_office') {
+      input = document.createElement('select');
+      const blankOpt = document.createElement('option');
+      blankOpt.value = '';
+      blankOpt.textContent = '-- select office --';
+      input.appendChild(blankOpt);
+      const currentVal = value == null ? '' : String(value);
+      let matched = false;
+      LOCAL_OFFICE_OPTIONS.forEach(office => {
+        const opt = document.createElement('option');
+        opt.value = office;
+        opt.textContent = office;
+        if (office === currentVal) matched = true;
+        input.appendChild(opt);
+      });
+      if (currentVal && !matched) {
+        const unknownOpt = document.createElement('option');
+        unknownOpt.value = currentVal;
+        unknownOpt.textContent = currentVal + ' (not on list - please verify)';
+        input.appendChild(unknownOpt);
+      }
+      input.value = currentVal;
+    } else {
+      input = document.createElement(String(value).length > 60 ? 'textarea' : 'input');
+      input.value = value == null ? '' : value;
+    }
     input.dataset.fieldKey = key;
     input.dataset.fieldType = 'scalar';
     wrap.appendChild(label);
@@ -321,6 +478,7 @@
   };
 
   const columns = KNOWN_COLUMNS[key] || (items.length ? Object.keys(items[0]) : ['value']);
+
 
     const table = document.createElement('table');
     table.className = 'items';
@@ -360,8 +518,35 @@
     const tr = document.createElement('tr');
     columns.forEach(col => {
       const td = document.createElement('td');
-      const input = document.createElement('input');
-      input.value = item[col] == null ? '' : item[col];
+      let input;
+      if (col === 'item_key') {
+        input = document.createElement('select');
+        const blankOpt = document.createElement('option');
+        blankOpt.value = '';
+        blankOpt.textContent = '-- select --';
+        input.appendChild(blankOpt);
+        const currentVal = item[col] == null ? '' : String(item[col]);
+        let matched = false;
+        ITEM_KEY_OPTIONS.forEach(([code, name]) => {
+          const opt = document.createElement('option');
+          opt.value = code;
+          opt.textContent = code + ' \u2013 ' + name;
+          if (code === currentVal) matched = true;
+          input.appendChild(opt);
+        });
+        // If the extracted value doesn't match any known code, keep it
+        // visible as its own option instead of silently discarding it
+        if (currentVal && !matched) {
+          const unknownOpt = document.createElement('option');
+          unknownOpt.value = currentVal;
+          unknownOpt.textContent = currentVal + ' (not on list - please verify)';
+          input.appendChild(unknownOpt);
+        }
+        input.value = currentVal;
+      } else {
+        input = document.createElement('input');
+        input.value = item[col] == null ? '' : item[col];
+      }
       input.dataset.col = col;
       td.appendChild(input);
       tr.appendChild(td);
