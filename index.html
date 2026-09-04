@@ -293,7 +293,11 @@
   // immediately instead of failing later with a cryptic backend error
   const SUPPORTED_TYPES = [
     'application/pdf', 'image/png', 'image/jpeg', 'image/tiff',
-    'image/gif', 'image/bmp', 'image/webp'
+    'image/gif', 'image/bmp', 'image/webp',
+    'application/msword', // .doc
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/rtf', 'text/rtf', // .rtf (browsers report either)
+    'application/vnd.ms-outlook' // .msg
   ];
 
   // Starts a new queue of files and kicks off processing the first one
@@ -368,7 +372,11 @@
   function normalize(data) {
     if (Array.isArray(data)) data = data[0] || {};
     if (data && data.json) data = data.json;
-    return data || {};
+    data = data || {};
+    // Internal reference data that should never be shown/edited in the form,
+    // even if a backend node accidentally passes it through
+    delete data.catalog;
+    return data;
   }
 
   function setStatus(html, cls) {
